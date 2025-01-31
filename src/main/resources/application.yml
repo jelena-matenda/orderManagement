@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://dpg-cud0amogph6c738jjne0-a:5432/ordermanagementpostgresql
+    username: jelena
+    password: KTwvMxHsh8XJ1d1NEsIb7Rak8elc2o1Z
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always  # da pokrene init sql pri dizanju
+
+# Dodatne postavke
+logging:
+  level:
+    org.springframework.jdbc.core: DEBUG

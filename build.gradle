@@ -1,0 +1,69 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.1.0'
+    id 'io.spring.dependency-management' version '1.1.0'
+    id 'org.openapi.generator' version '6.6.0'
+}
+
+group = 'com.example'
+version = '1.0'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Za rad s Form login i sl.
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Validacija
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.8'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.4'
+
+
+    // PostgreSQL i JDBC template
+    implementation 'org.postgresql:postgresql:42.5.0'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Logiranje (SLF4J već dolazi, a možda i Logback)
+    // Ako želimo dodatni slf4j dependency, ali obično je uključeno s starterima.
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// OpenAPI Generator plugin
+openApiGenerate {
+    generatorName = 'spring'
+    inputSpec = "$rootDir/src/main/resources/openapi.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = 'ent.orderManagement.api'
+    modelPackage = 'ent.orderManagement.model'
+    configOptions = [
+            interfaceOnly: "true",
+            dateLibrary : "java8"
+    ]
+}
+
+// Uključimo generirani kod u source set:
+sourceSets {
+    main {
+        java {
+            srcDirs += "$buildDir/generated/src/main/java"
+        }
+    }
+}
+
+// Gradle će prije kompilacije pokrenuti generator:
+tasks.named('compileJava') {
+    dependsOn tasks.named('openApiGenerate')
+}
