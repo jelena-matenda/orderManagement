@@ -1,20 +1,27 @@
 package ent.orderManagement.repository;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import ent.orderManagement.controller.CustomerController;
+import ent.orderManagement.exception.DuplicateEmailException;
+import ent.orderManagement.exception.DuplicateUuidException;
 import ent.orderManagement.model.Customer;
 
 @Repository
 public class CustomerRepository {
 
+    private static final Logger logger = LoggerFactory.getLogger(CustomerRepository.class);
     private final JdbcTemplate jdbcTemplate;
 
     /**
@@ -58,7 +65,9 @@ public class CustomerRepository {
      */
     public Optional<Customer> findById(UUID id) {
         String sql = "SELECT * FROM customers WHERE id = ?";
-        List<Customer> results = jdbcTemplate.query(sql, CUSTOMER_ROW_MAPPER, id.toString());
+        logger.debug("Customer id: ", id);
+        List<Customer> results = jdbcTemplate.query(sql, CUSTOMER_ROW_MAPPER, id);
+        logger.debug("Results: ", results);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
@@ -73,23 +82,43 @@ public class CustomerRepository {
         String sql = "INSERT INTO customers (id, name, email, created_at) "
                    + "VALUES (?, ?, ?, ?) RETURNING id";
 
+        logger.debug("Customer : ", customer);
+
+
         // If the Customer doesn't have an ID yet, generate one
         UUID newId = (customer.getId() == null) ? UUID.randomUUID() : customer.getId();
         
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        jdbcTemplate.queryForObject(
-            sql,
-            (rs, rowNum) -> rs.getString("id"),  // Map the RETURNING id
-            newId.toString(),
-            customer.getName(),
-            customer.getEmail(),
-            now
+        logger.debug("Customer id: ", newId);
+
+        Integer count = jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) FROM customers WHERE id = ?", 
+        Integer.class, 
+        newId
         );
 
-        // Set the fields in the returned object
-        customer.setId(newId);
+        if (count != null && count > 0) {
+            throw new DuplicateUuidException("Duplicate UUID: Customer with ID " + newId + " already exists.");
+        }
+
+        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+
+        try {
+        UUID returnedId = jdbcTemplate.queryForObject(
+        sql,
+        (rs, rowNum) -> UUID.fromString(rs.getString("id")),  // Convert returned String to UUID
+        newId,  // Pass UUID directly
+        customer.getName(),
+        customer.getEmail(),
+        now
+        );
+
+        // Set the generated ID and timestamp
+        customer.setId(returnedId);
         customer.setCreatedAt(now.toLocalDateTime().atOffset(ZoneOffset.UTC));
         return customer;
+        } catch (DuplicateEmailException ex) {
+        throw new DuplicateEmailException("Customer with the same Email already exists.");
+        }
     }
 
     /**
@@ -103,7 +132,7 @@ public class CustomerRepository {
             sql,
             customer.getName(),
             customer.getEmail(),
-            customer.getId().toString()
+            customer.getId()
         );
         return customer;
     }
@@ -113,7 +142,7 @@ public class CustomerRepository {
      */
     public void deleteById(UUID id) {
         String sql = "DELETE FROM customers WHERE id = ?";
-        jdbcTemplate.update(sql, id.toString());
+        jdbcTemplate.update(sql, id);
     }
 
     /**

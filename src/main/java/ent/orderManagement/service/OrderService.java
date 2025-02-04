@@ -2,6 +2,7 @@ package ent.orderManagement.service;
 
 import org.springframework.stereotype.Service;
 
+import ent.orderManagement.exception.OrderNotFoundException;
 import ent.orderManagement.model.Order;
 import ent.orderManagement.model.Order.StatusEnum;
 import ent.orderManagement.repository.CustomerRepository;
@@ -30,7 +31,7 @@ public class OrderService {
      * 3) If status is not provided, default to NEW.
      */
     public Order createOrder(Order order) {
-        if (order.getCustomerId() == null) {
+      /*  if (order.getCustomerId() == null) {
             throw new IllegalArgumentException("customerId is required");
         }
 
@@ -52,7 +53,7 @@ public class OrderService {
         // If status is null, default to NEW
         if (order.getStatus() == null) {
             order.setStatus(StatusEnum.NEW);
-        }
+        }*/
 
         return orderRepository.save(order);
     }
@@ -62,7 +63,7 @@ public class OrderService {
      */
     public Order getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     /**

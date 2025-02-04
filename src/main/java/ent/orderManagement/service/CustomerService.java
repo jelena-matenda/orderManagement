@@ -1,8 +1,11 @@
 package ent.orderManagement.service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import ent.orderManagement.model.Customer;
 import ent.orderManagement.repository.CustomerRepository;
+import ent.orderManagement.exception.CustomerNotFoundException;
+import ent.orderManagement.exception.DuplicateUuidException;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +39,7 @@ public class CustomerService {
      */
     public Customer getCustomer(UUID customerId) {
         return customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new CustomerNotFoundException("Customer with ID " + customerId + " not found"));
     }
 
     /**
@@ -53,17 +56,18 @@ public class CustomerService {
      * @param newData    the new customer data (name, email, etc.)
      */
     public Customer updateCustomer(UUID customerId, Customer newData) {
-        // Fetch existing customer
-        Customer existing = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+         Customer existingCustomer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("Customer with ID " + customerId + " not found"));
 
-        // Update fields (only if they’re not null, or always override—depends on your logic)
-        existing.setName(newData.getName());
-        existing.setEmail(newData.getEmail());
 
-        // Save changes
-        return customerRepository.update(existing);
-    }
+        if (newData.getName() != null) existingCustomer.setName(newData.getName());
+        if (newData.getEmail() != null) existingCustomer.setEmail(newData.getEmail());
+
+        try {
+            return customerRepository.update(existingCustomer);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateUuidException("Cannot update customer due to a database constraint violation.");
+        }}
 
     /**
      * Delete a customer by ID.

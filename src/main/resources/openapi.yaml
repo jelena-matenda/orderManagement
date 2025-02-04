@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Retail System API
+  title: Order Management API
   version: 1.0.0
 
 paths:
@@ -195,7 +195,7 @@ components:
 
     Order:
       type: object
-      required:
+      required:  # ✅ Ensure required fields are enforced
         - customerId
         - orderDate
         - totalAmount
@@ -204,19 +204,27 @@ components:
         id:
           type: string
           format: uuid
+          readOnly: true  # ✅ ID should be auto-generated
+          example: "a3bb189e-8bf9-3888-9912-ace4e6543007"
         customerId:
           type: string
           format: uuid
+          example: "550e8400-e29b-41d4-a716-446655441113"
         orderDate:
           type: string
           format: date
+          example: "2024-01-01"
         totalAmount:
           type: number
           format: float
           minimum: 0.01
+          example: 99.99
         status:
           type: string
           enum: [NEW, IN_PROGRESS, COMPLETED]
+          example: "NEW"
         createdAt:
           type: string
           format: date-time
+          readOnly: true  # ✅ Auto-generated timestamp
+          example: "2025-02-03T16:04:21.922127+01:00"

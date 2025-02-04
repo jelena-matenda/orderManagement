@@ -55,7 +55,7 @@ public class OrderRepository {
      */
     public Optional<Order> findById(UUID id) {
         String sql = "SELECT * FROM orders WHERE id = ?";
-        List<Order> list = jdbcTemplate.query(sql, ORDER_ROW_MAPPER, id.toString());
+        List<Order> list = jdbcTemplate.query(sql, ORDER_ROW_MAPPER, id);
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
@@ -80,11 +80,11 @@ public class OrderRepository {
             order.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime().atOffset(ZoneOffset.UTC));
             return order; 
         },
-        newId.toString(),
-        order.getCustomerId().toString(),
+        newId,
+        order.getCustomerId(),
         order.getOrderDate(),
         order.getTotalAmount(),
-        order.getStatus().toString()
+        order.getStatus()
         );
     }
 
@@ -101,11 +101,11 @@ public class OrderRepository {
              WHERE id = ?
         """;
         jdbcTemplate.update(sql,
-            order.getCustomerId().toString(),
+            order.getCustomerId(),
             order.getOrderDate(),
             order.getTotalAmount(),
-            order.getStatus().toString(),
-            order.getId().toString()
+            order.getStatus(),
+            order.getId()
         );
         return order;
     }
@@ -115,7 +115,7 @@ public class OrderRepository {
      */
     public void deleteById(UUID id) {
         String sql = "DELETE FROM orders WHERE id = ?";
-        jdbcTemplate.update(sql, id.toString());
+        jdbcTemplate.update(sql, id);
     }
 
     /**
@@ -123,7 +123,7 @@ public class OrderRepository {
      */
     public boolean existsById(UUID id) {
         String sql = "SELECT COUNT(*) FROM orders WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id.toString());
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
         return (count != null && count > 0);
     }
 }
