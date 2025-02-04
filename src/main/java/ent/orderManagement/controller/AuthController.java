@@ -2,74 +2,47 @@ package ent.orderManagement.controller;
 
 import ent.orderManagement.model.Role;
 import ent.orderManagement.model.User;
-import ent.orderManagement.payload.AuthRequest;
-import ent.orderManagement.payload.AuthResponse;
-import ent.orderManagement.repository.UserRepository;
-import ent.orderManagement.security.JwtUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import ent.orderManagement.service.UserService;
+import ent.orderManagement.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authManager;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private JwtUtils jwtUtils;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    // 1) Register (sign up)
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody AuthRequest request) {
-        // Check if user already exists
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return ResponseEntity.badRequest().body("Username is already taken.");
-        }
-
-        // Create new user with default ROLE_USER
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRoles(Set.of(Role.ROLE_USER));
-
-        userRepository.save(user);
-
-        return ResponseEntity.ok("User registered successfully.");
+    public AuthController(UserService userService, JwtUtil jwtUtil, AuthenticationManager authenticationManager) {
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
+        this.authenticationManager = authenticationManager;
     }
 
-    // 2) Login (sign in)
+    /**
+     * 📝 Register a new user (Admin or User)
+     */
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody User request) {
+        userService.registerUser(request.getUsername(), request.getPassword(), request.getRole());
+        return ResponseEntity.ok("User registered successfully!");
+    }
+
+    /**
+     * 🔑 Authenticate user & return JWT Token
+     */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        // Attempt authentication
-        Authentication authentication = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+    public ResponseEntity<String> login(@RequestBody User request) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        // If successful, generate JWT
-        var user = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
-        Set<String> roles = user.getAuthorities().stream()
-        .map(authority -> authority.getAuthority())
-        .collect(Collectors.toSet());
+        UserDetails userDetails = userService.loadUserByUsername(request.getUsername());
+        String token = jwtUtil.generateToken(userDetails.getUsername(), ((User) userDetails).getRole().name());
 
-        String token = jwtUtils.generateToken(user.getUsername(), roles);
-        return ResponseEntity.ok(new AuthResponse(token));
+        return ResponseEntity.ok(token);
     }
 }
