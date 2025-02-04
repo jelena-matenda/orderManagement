@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,12 +34,14 @@ public class CustomerController {
 
     // GET /customers
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Customer> getAllCustomers() {
         return customerService.getAllCustomers();
     }
 
     // GET /customers/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Customer> getCustomer(@PathVariable UUID id) {
         logger.debug("Customer id: ", id);
         Customer c = customerService.getCustomer(id);
@@ -48,6 +51,7 @@ public class CustomerController {
 
     // POST /customers
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Customer> createCustomer(@Valid @RequestBody Customer customer) {
         Customer saved = customerService.createCustomer(customer);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
@@ -55,6 +59,7 @@ public class CustomerController {
 
     // PUT /customers/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Customer> updateCustomer(
         @PathVariable UUID id,
         @Valid @RequestBody Customer newData
@@ -65,6 +70,7 @@ public class CustomerController {
 
     // DELETE /customers/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCustomer(@PathVariable UUID id) {
         customerService.deleteCustomer(id);
         return ResponseEntity.noContent().build();
