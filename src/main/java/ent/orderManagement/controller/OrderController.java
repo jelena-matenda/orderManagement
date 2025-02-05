@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,8 +42,8 @@ public class OrderController {
 
     // GET /orders
     @GetMapping
-    public List<Order> getAllOrders() {
-        return orderService.getOrders();
+    public Page<Order> getAllOrders(Pageable pageable) {
+        return orderService.getOrders(pageable);
     }
 
     // GET /orders/{id}
