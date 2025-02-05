@@ -20,21 +20,12 @@ Ovaj projekt implementira REST API za upravljanje narudžbama u sustavu za malop
    cd order-management-api
    ```
 
-2. **Postavite bazu podataka na Render**
-   - Kreirajte PostgreSQL bazu na **Render**.
-   - Ažurirajte `application.yml` s povezivanjem na Render bazu:
-   
-   ```yaml
-   spring:
-     datasource:
-       url: jdbc:postgresql://dpg-cud0amogph6c738jjne0-a.frankfurt-postgres.render.com:5432/ordermanagementpostgresql
-       username: jelena
-       password: ${DB_PASSWORD}
-     jpa:
-       hibernate:
-         ddl-auto: update
-       show-sql: true
-   ```
+2. **Postavite `.env` datoteku** s podacima za bazu podataka:
+   Kreirajte `.env` datoteku u root direktoriju projekta i dodajte:
+   ```sh
+   DATABASE_URL=${DATABASE_URL}
+   DATABASE_USER=${DATABASE_USER}
+   DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
 3. **Pokrenite aplikaciju**
    ```sh
