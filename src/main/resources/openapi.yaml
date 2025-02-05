@@ -183,6 +183,7 @@ components:
         id:
           type: string
           format: uuid
+          readOnly: true
         name:
           type: string
           minLength: 3
@@ -192,11 +193,11 @@ components:
         createdAt:
           type: string
           format: date-time
+          readOnly: true  
 
     Order:
       type: object
-      required:  # ✅ Ensure required fields are enforced
-        - customerId
+      required:  
         - orderDate
         - totalAmount
         - status
@@ -204,21 +205,18 @@ components:
         id:
           type: string
           format: uuid
-          readOnly: true  # ✅ ID should be auto-generated
-          example: "a3bb189e-8bf9-3888-9912-ace4e6543007"
+          readOnly: true  
         customerId:
           type: string
           format: uuid
-          example: "550e8400-e29b-41d4-a716-446655441113"
+          readOnly: true 
         orderDate:
           type: string
           format: date
-          example: "2024-01-01"
         totalAmount:
           type: number
           format: float
           minimum: 0.01
-          example: 99.99
         status:
           type: string
           enum: [NEW, IN_PROGRESS, COMPLETED]
@@ -226,5 +224,4 @@ components:
         createdAt:
           type: string
           format: date-time
-          readOnly: true  # ✅ Auto-generated timestamp
-          example: "2025-02-03T16:04:21.922127+01:00"
+          readOnly: true  

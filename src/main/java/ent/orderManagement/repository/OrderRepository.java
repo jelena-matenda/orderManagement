@@ -60,6 +60,15 @@ public class OrderRepository {
     }
 
     /**
+    * Find orders by customerId.
+    */
+    public List<Order> findByCustomerId(UUID customerId) {
+        String sql = "SELECT * FROM orders WHERE customer_id = ?";
+        return jdbcTemplate.query(sql, ORDER_ROW_MAPPER, customerId);
+    }   
+
+
+    /**
      * Save (insert) a new Order into the table.
      * Using PostgreSQL's RETURNING feature to get the inserted id back.
      */

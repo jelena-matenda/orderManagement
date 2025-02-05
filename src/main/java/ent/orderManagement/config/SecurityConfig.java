@@ -5,10 +5,10 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -50,15 +50,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
             .authorizeHttpRequests()
-            .requestMatchers("/auth/**").permitAll()  // Allow public access to authentication endpoints
-            .requestMatchers("/customers/**").hasRole("ADMIN")  // Only ADMIN can access customers
-            .requestMatchers("/orders/**").hasAnyRole("ADMIN", "USER")  // USER and ADMIN can access orders
+            .requestMatchers("/auth/**").permitAll()  // Public endpoints
+            .requestMatchers("/customers/**").hasRole("ADMIN")  // Only ADMIN can manage customers
+            .requestMatchers(HttpMethod.GET, "/orders/**").authenticated()  // All authenticated users can GET orders
+            .requestMatchers("/orders/**").hasAnyRole("ADMIN", "USER")  // Users can create/update their own orders
             .anyRequest().authenticated()
             .and()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-
+    
         return http.build();
     }
 

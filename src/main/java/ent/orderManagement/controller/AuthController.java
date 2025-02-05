@@ -1,6 +1,5 @@
 package ent.orderManagement.controller;
 
-import ent.orderManagement.model.Role;
 import ent.orderManagement.model.User;
 import ent.orderManagement.service.UserService;
 import ent.orderManagement.security.JwtUtil;

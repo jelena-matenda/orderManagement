@@ -13,7 +13,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import ent.orderManagement.controller.CustomerController;
 import ent.orderManagement.exception.DuplicateEmailException;
 import ent.orderManagement.exception.DuplicateUuidException;
 import ent.orderManagement.model.Customer;

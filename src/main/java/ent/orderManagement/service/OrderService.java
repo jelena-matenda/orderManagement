@@ -1,15 +1,17 @@
 package ent.orderManagement.service;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import ent.orderManagement.exception.OrderNotFoundException;
 import ent.orderManagement.model.Order;
 import ent.orderManagement.model.Order.StatusEnum;
+import ent.orderManagement.model.Role;
+import ent.orderManagement.model.User;
 import ent.orderManagement.repository.CustomerRepository;
 import ent.orderManagement.repository.OrderRepository;
+import ent.orderManagement.repository.UserRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,100 +20,101 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
 
-    public OrderService(OrderRepository orderRepository, CustomerRepository customerRepository) {
+    public OrderService(OrderRepository orderRepository, CustomerRepository customerRepository, UserRepository userRepository) {
         this.orderRepository = orderRepository;
         this.customerRepository = customerRepository;
+        this.userRepository = userRepository;
     }
 
     /**
-     * Create a new order with business logic checks:
-     * 1) Ensure the referenced customerId exists.
-     * 2) totalAmount must be > 0.
-     * 3) If status is not provided, default to NEW.
+     * 📝 Get a single order by ID (Admins can see all, Users only their own).
+     */
+    public Order getOrderById(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        User currentUser = getCurrentUser();
+
+        if (currentUser.getRole() == Role.ADMIN || order.getCustomerId().equals(currentUser.getId())) {
+            return order;
+        } else {
+            throw new RuntimeException("Access denied: You can only view your own orders.");
+        }
+    }
+
+    /**
+     * 📝 Create an order (Users can only create orders for themselves).
      */
     public Order createOrder(Order order) {
-      /*  if (order.getCustomerId() == null) {
-            throw new IllegalArgumentException("customerId is required");
-        }
-
-        // Check if customer exists
-        if (!customerRepository.existsById(order.getCustomerId())) {
-            throw new RuntimeException("Customer not found: " + order.getCustomerId());
-        }
-
-        // Ensure totalAmount > 0
-        if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO.floatValue()) <= 0) {
-            throw new IllegalArgumentException("totalAmount must be greater than 0");
-        }
-
-        // If orderDate is not provided, you could set it to "today" or throw an error.
-        if (order.getOrderDate() == null) {
-            order.setOrderDate(LocalDate.now());
-        }
-
-        // If status is null, default to NEW
-        if (order.getStatus() == null) {
-            order.setStatus(StatusEnum.NEW);
-        }*/
-
+        User currentUser = getCurrentUser();
+        order.setCustomerId(currentUser.getId()); // Assign current user as customer
         return orderRepository.save(order);
     }
 
     /**
-     * Retrieve an Order by its ID (throws an exception if not found).
+     * 📝 Update an order (Users can only update their own, Admins can update all).
      */
-    public Order getOrderById(UUID orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
-    }
+    public Order updateOrder(UUID orderId, Order newOrder) {
+        Order existingOrder = getOrderById(orderId);
+        User currentUser = getCurrentUser();
 
-    /**
-     * Retrieve all orders from the database.
-     */
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
-    }
+        if (currentUser.getRole() == Role.ADMIN || existingOrder.getCustomerId().equals(currentUser.getId())) {
+            existingOrder.setOrderDate(newOrder.getOrderDate());
+            existingOrder.setTotalAmount(newOrder.getTotalAmount());
 
-    /**
-     * Update an existing order. 
-     * Only allow status changes from NEW -> IN_PROGRESS or COMPLETED (example rule).
-     */
-    public Order updateOrder(UUID orderId, Order newData) {
-        // Fetch existing order
-        Order existing = orderRepository.findById(orderId)
-            .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-
-        // Validate status transition
-        if (!canTransitionStatus(existing.getStatus(), newData.getStatus())) {
+                    // Validate status transition
+        if (!canTransitionStatus(existingOrder.getStatus(), newOrder.getStatus())) {
             throw new IllegalStateException(
-                "Invalid status transition: " + existing.getStatus() + " -> " + newData.getStatus()
+                "Invalid status transition: " + existingOrder.getStatus() + " -> " + newOrder.getStatus()
             );
         }
 
-        // If needed, ensure new totalAmount is > 0
-        if (newData.getTotalAmount() != null && newData.getTotalAmount().compareTo(BigDecimal.ZERO.floatValue()) <= 0) {
-            throw new IllegalArgumentException("totalAmount must be greater than 0");
+            existingOrder.setStatus(newOrder.getStatus());
+            return orderRepository.save(existingOrder);
+        } else {
+            throw new RuntimeException("Access denied: You can only update your own orders.");
         }
-
-        // Update fields (choose which ones to allow overriding)
-        existing.setOrderDate(newData.getOrderDate() != null ? newData.getOrderDate() : existing.getOrderDate());
-        existing.setTotalAmount(newData.getTotalAmount() != null ? newData.getTotalAmount() : existing.getTotalAmount());
-        existing.setStatus(newData.getStatus() != null ? newData.getStatus() : existing.getStatus());
-
-        return orderRepository.update(existing);
     }
 
     /**
-     * Delete an Order by ID. 
+     * 📝 Delete an order (Users can only delete their own, Admins can delete all).
      */
     public void deleteOrder(UUID orderId) {
-        if (!orderRepository.existsById(orderId)) {
-            throw new RuntimeException("Order not found: " + orderId);
+        Order order = getOrderById(orderId);
+        User currentUser = getCurrentUser();
+
+        if (currentUser.getRole() == Role.ADMIN || order.getCustomerId().equals(currentUser.getId())) {
+            orderRepository.deleteById(orderId);
+        } else {
+            throw new RuntimeException("Access denied: You can only delete your own orders.");
         }
-        // Optionally add checks (e.g., if order is in certain status, can't delete).
-        orderRepository.deleteById(orderId);
     }
+
+    /**
+     * 🛑 Get the currently authenticated user.
+     */
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+
+    /**
+     * 📝 Get all orders (Admins can see all, Users only their own).
+     */
+    public List<Order> getOrders() {
+        User currentUser = getCurrentUser();
+        
+        if (currentUser.getRole() == Role.ADMIN) {
+            return orderRepository.findAll(); // Admin sees all orders
+        } else {
+            return orderRepository.findByCustomerId(currentUser.getId()); // User sees only their orders
+        }
+    }
+
 
     /**
      * Example logic for allowed status transitions:
